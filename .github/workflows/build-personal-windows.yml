@@ -15,6 +15,8 @@ permissions:
 env:
   RELEASE_VERSION: ${{ inputs.version }}
   T3CODE_TELEMETRY_CHANNEL: dev
+  ENRICHED_MARKDOWN_ENABLE_CODE_HIGHLIGHT: "0"
+  ENRICHED_MARKDOWN_ENABLE_MATH: "0"
 
 jobs:
   bundle:
@@ -22,13 +24,17 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb
         with:
           node-version-file: package.json
           cache: false
           run-install: false
       - name: Install dependencies
-        run: vp install --frozen-lockfile -- --registry=https://registry.npmjs.org --ignore-scripts
+        run: vp install --frozen-lockfile -- --registry=https://registry.npmjs.org
+      - name: Install browser test runtime
+        run: node apps/desktop/node_modules/playwright-core/cli.js install chromium --only-shell --with-deps
       - name: Verify feature changes
         run: vp run check:changed 337c5858c33bc7f8f6dfd391a2c279fa0f7e4d17 --concurrency 2
       - name: Set release version
@@ -73,7 +79,7 @@ jobs:
           cache: false
           run-install: false
       - name: Install dependencies
-        run: vp install --frozen-lockfile -- --registry=https://registry.npmjs.org --ignore-scripts
+        run: vp install --frozen-lockfile -- --registry=https://registry.npmjs.org
       - name: Set release version
         run: node scripts/update-release-package-versions.ts "$env:RELEASE_VERSION"
       - uses: actions/download-artifact@v8
