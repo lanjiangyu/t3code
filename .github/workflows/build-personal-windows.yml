@@ -39,6 +39,10 @@ jobs:
         run: vp run check:changed 337c5858c33bc7f8f6dfd391a2c279fa0f7e4d17 --concurrency 2
       - name: Set release version
         run: node scripts/update-release-package-versions.ts "$RELEASE_VERSION"
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev patchelf
       - name: Build desktop bundles and Linux CLI
         run: |
           vp run build:desktop
@@ -48,8 +52,6 @@ jobs:
           cargo build --locked --release --manifest-path native/resource-monitor/Cargo.toml --target x86_64-unknown-linux-gnu
           mkdir -p "$RUNNER_TEMP/monitor/linux-x64"
           cp native/resource-monitor/target/x86_64-unknown-linux-gnu/release/t3-resource-monitor "$RUNNER_TEMP/monitor/linux-x64/"
-          sudo apt-get update
-          sudo apt-get install -y patchelf
       - name: Package WSL runtime
         run: node scripts/build-cli-archive.ts --platform linux --arch x64 --version "$RELEASE_VERSION" --resource-monitor-dir "$RUNNER_TEMP/monitor" --output-dir release-cli
       - name: Verify WSL runtime
