@@ -44,6 +44,18 @@ Claude Code's verbose mode can stay enabled when you use Claude for text generat
 thread titles, branch names, commit messages, and pull request descriptions. On a remote connection,
 T3 Code uses the Claude configuration on the connected server.
 
+## Use DeepSeek
+
+On web and desktop, choose **Add DeepSeek via Claude Code** in
+**Settings → Providers → Add provider**. Enter a DeepSeek API key and choose Flash
+or Pro. Claude Code must be installed on the connected environment. The preset
+uses DeepSeek's Anthropic-compatible API with a separate configuration directory;
+your existing Claude account stays available as its own provider.
+
+DeepSeek API usage is billed by DeepSeek and does not use a Claude Pro subscription.
+Select the DeepSeek provider in a new thread. You can edit or remove it in provider
+settings. See [DeepSeek's Claude Code guide](https://api-docs.deepseek.com/quick_start/agent_integrations/claude_code/).
+
 ## Compact long conversations
 
 Set **Auto-compact after** in the Claude provider settings to an integer between

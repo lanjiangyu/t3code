@@ -52,6 +52,9 @@ describe("RPC authorization scopes", () => {
   });
 
   it("separates passive terminal observation from operations that can change a shell", () => {
+    expect(requiredScopeForRpcMethod(WS_METHODS.serverDiscoverLocalCodexAccounts)).toBe(
+      AuthProvidersManageScope,
+    );
     for (const method of [WS_METHODS.terminalObserve, WS_METHODS.subscribeTerminalMetadata]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthTerminalReadScope);
     }

@@ -293,6 +293,7 @@ describe("CodexAdapterV2 native protocol logging", () => {
           params: {
             id: "evt-1",
             http_headers: { Authorization: "Bearer secret-codex-token" },
+            accessToken: "local-account-access-token",
             usage: { inputTokens: 12, outputTokens: 8, totalTokens: 20 },
           },
         },
@@ -319,6 +320,7 @@ describe("CodexAdapterV2 native protocol logging", () => {
             params: {
               id: "evt-1",
               http_headers: { Authorization: "[REDACTED]" },
+              accessToken: "[REDACTED]",
               usage: { inputTokens: 12, outputTokens: 8, totalTokens: 20 },
             },
           },

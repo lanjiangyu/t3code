@@ -14,6 +14,32 @@ import { AppAtomRegistryProvider, appAtomRegistry as registry } from "../../rpc/
 
 const setup = vi.hoisted(() => ({
   update: vi.fn(async () => ({ _tag: "Success" as const })),
+  persist: vi.fn(async (_input: unknown) => ({ _tag: "Success" as const })),
+  discover: vi.fn(async () => ({
+    _tag: "Success" as const,
+    value: {
+      sharedHomePath: "/home/user/.codex",
+      accounts: [
+        {
+          accountId: "primary",
+          email: "primary@example.test",
+          planType: "plus",
+          homePath: "/profiles/primary/codex-home",
+          source: "quota-monitor" as const,
+          active: true,
+        },
+        {
+          accountId: "secondary",
+          email: "secondary@example.test",
+          planType: "plus",
+          homePath: "/profiles/secondary/codex-home",
+          source: "quota-monitor" as const,
+          active: false,
+        },
+      ],
+    },
+  })),
+  refresh: vi.fn(async () => ({ _tag: "Success" as const })),
 }));
 
 const providersAtom = vi.hoisted(() => ({ current: null as unknown }));
@@ -26,6 +52,8 @@ vi.mock(import("../../state/server"), async (original) => {
       ...actual.serverEnvironment,
       providersValueAtom: (() => providersAtom.current) as never,
       updateSettings: setup.update as never,
+      discoverLocalCodexAccounts: setup.discover as never,
+      refreshProviders: setup.refresh as never,
     },
   };
 });
@@ -41,6 +69,7 @@ vi.mock(import("../../state/session"), async (original) => ({
 vi.mock(import("../../hooks/useSettings"), async (original) => ({
   ...(await original()),
   useEnvironmentSettings: (() => ({ providerInstances: {} })) as never,
+  usePersistEnvironmentProviderInstanceMutation: (() => setup.persist) as never,
 }));
 
 import { AddCodexAccountDialog } from "./AddCodexAccountDialog";
@@ -89,6 +118,47 @@ function Owner({ onClose }: { readonly onClose: () => void }) {
 }
 
 describe("AddCodexAccountDialog", () => {
+  it("imports separate local logins into the same conversation home", async () => {
+    setup.persist.mockClear();
+    providersAtom.current = Atom.make<ReadonlyArray<ServerProvider> | null>([]).pipe(
+      Atom.keepAlive,
+    );
+    const onClose = vi.fn();
+    await using screen = await render(
+      <AppAtomRegistryProvider>
+        <Owner onClose={onClose} />
+      </AppAtomRegistryProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Import local Codex accounts" }));
+    await userEvent.click(screen.getByRole("button", { name: "Find local accounts" }));
+    await userEvent.click(screen.getByRole("button", { name: "Import 2 accounts" }));
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(setup.persist.mock.calls.map(([input]) => input)).toMatchObject([
+      {
+        operation: "upsert",
+        instanceId: "codex",
+        instance: {
+          config: {
+            homePath: "/home/user/.codex",
+            shadowHomePath: "",
+            authSourceHome: "/profiles/primary/codex-home",
+            authSourceAccountId: "primary",
+          },
+        },
+      },
+      {
+        operation: "create",
+        instance: {
+          config: {
+            homePath: "/home/user/.codex",
+            shadowHomePath: "",
+            authSourceHome: "/profiles/secondary/codex-home",
+            authSourceAccountId: "secondary",
+          },
+        },
+      },
+    ]);
+  });
   it("plays its close animation before the owner unmounts it once the account connects", async () => {
     const atom = Atom.make<ReadonlyArray<ServerProvider> | null>([]).pipe(Atom.keepAlive);
     providersAtom.current = atom;

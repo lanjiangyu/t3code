@@ -1449,6 +1449,11 @@ export function createServerEnvironmentAtoms<R, E>(
       concurrency: configConcurrency,
     }),
     updateSettings,
+    discoverLocalCodexAccounts: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:server:discover-local-codex-accounts",
+      tag: WS_METHODS.serverDiscoverLocalCodexAccounts,
+      concurrency: { mode: "singleFlight", key: ({ environmentId }) => environmentId },
+    }),
     mutateProviderInstance: updateSettings,
     prepareAcpRegistryAgent: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:server:acp-registry:prepare",

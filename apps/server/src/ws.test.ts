@@ -2,6 +2,7 @@ import * as SecretResolver from "@t3tools/secret-provider-core/server/SecretReso
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
+import * as LocalCodexAccounts from "./provider/LocalCodexAccounts.ts";
 import {
   AuthSessionId,
   EnvironmentId,
@@ -787,6 +788,9 @@ it.effect.each([
       const responses = yield* Queue.unbounded<ServerConfigStreamEvent>();
       const configRpcServices = Layer.mergeAll(
         layerUnusedConfigRpcServices,
+        Layer.mock(LocalCodexAccounts.LocalCodexAccounts)({
+          discover: Effect.succeed({ accounts: [], sharedHomePath: "/codex" }),
+        }),
         Layer.mock(ExternalLauncher.ExternalLauncher)({
           resolveAvailableEditors: () =>
             Deferred.succeed(discoveryStarted, undefined).pipe(
@@ -1036,6 +1040,9 @@ it.effect("on-demand clients get provider config without workspace snapshots", (
     const responses = yield* Queue.unbounded<unknown>();
     const configRpcServices = Layer.mergeAll(
       layerUnusedConfigRpcServices,
+      Layer.mock(LocalCodexAccounts.LocalCodexAccounts)({
+        discover: Effect.succeed({ accounts: [], sharedHomePath: "/codex" }),
+      }),
       Layer.mock(ExternalLauncher.ExternalLauncher)({
         resolveAvailableEditors: () => Effect.succeed([]),
         resolveFileManagerRevealKind: () => Effect.undefined,

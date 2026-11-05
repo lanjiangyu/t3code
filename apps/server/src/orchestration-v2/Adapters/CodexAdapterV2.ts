@@ -50,6 +50,7 @@ import {
 import { getModelSelectionStringOptionValue, modelSelectionsEqual } from "@t3tools/shared/model";
 import { appendGeneratedImageEmbeds } from "@t3tools/shared/generatedImageMarkdown";
 import { resolveSpawnCommand } from "@t3tools/shared/shell";
+import { makeLocalCodexAuthenticator } from "../../provider/LocalCodexAuth.ts";
 import { mcpToolResultOutput } from "@t3tools/shared/toolOutput";
 import type {
   ChatAttachment,
@@ -1637,6 +1638,7 @@ export const layerAppServerClientFactory: Layer.Layer<
 
 export type CodexAdapterV2DriverEnv =
   | CodexAppServerClientFactory
+  | ChildProcessSpawner.ChildProcessSpawner
   | Digest.Digest
   | FileSystem.FileSystem
   | IdAllocator.IdAllocatorV2
@@ -1676,16 +1678,22 @@ export const createCodexAdapterV2 = Effect.fn("CodexAdapterV2.createCodexAdapter
     homePath: homeLayout.effectiveHomePath ?? "",
   } satisfies CodexSettings;
 
+  const processEnvironment = yield* mergeProviderInstanceEnvironment(environment, hostEnvironment);
+  const localAccountAuth = settings.authSourceHome?.trim()
+    ? yield* makeLocalCodexAuthenticator(settings, processEnvironment)
+    : undefined;
+
   return yield* makeCodexAdapterV2({
     instanceId,
     settings,
-    environment: yield* mergeProviderInstanceEnvironment(environment, hostEnvironment),
+    environment: processEnvironment,
     clientFactory,
     digest,
     fileSystem,
     idAllocator,
     serverConfig,
     continuationRequests,
+    localAccountAuth,
     ...hooks,
   });
 });
@@ -1693,6 +1701,11 @@ export const createCodexAdapterV2 = Effect.fn("CodexAdapterV2.createCodexAdapter
 export interface CodexAdapterV2Options {
   readonly instanceId: ProviderInstanceId;
   readonly settings: CodexSettings;
+  readonly localAccountAuth?:
+    | ((
+        client: CodexClient.CodexAppServerClient["Service"],
+      ) => Effect.Effect<void, CodexErrors.CodexAppServerError>)
+    | undefined;
   readonly environment: NodeJS.ProcessEnv;
   readonly clientFactory: CodexAppServerClientFactoryShape;
   readonly onUsageLimits?: ManagedServerProvider["applyUsageLimits"];
@@ -1835,6 +1848,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               });
             }
             yield* client.notify("initialized", undefined);
+            if (adapterOptions.localAccountAuth) yield* adapterOptions.localAccountAuth(client);
             yield* Ref.set(initialized, true);
           }),
         );

@@ -61,6 +61,7 @@ import { AddManagedCodexAccountDialog } from "./CodexSetupSection";
 import { MultipleAccountsNote } from "./MultipleAccountsNote";
 import { ProviderEnvironmentSection } from "./ProviderInstanceCard";
 import { useSecretSources } from "./SecretSourceInput";
+import { AddDeepSeekDialog } from "./AddDeepSeekDialog";
 
 const INSTANCE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 const DEFAULT_DRIVER_KIND = ProviderDriverKind.make("codex");
@@ -157,6 +158,7 @@ export function AddProviderInstanceDialog({
 
   const [wizardStep, setWizardStep] = useState(0);
   const [addingChatGptAccount, setAddingChatGptAccount] = useState(false);
+  const [addingDeepSeek, setAddingDeepSeek] = useState(false);
   // Drivers the administrator's policy leaves out are not offered at all.
   const managedPolicy = useManagedPolicy(environmentId);
   const featuredDriverOptions = FEATURED_DRIVER_OPTIONS.filter((option) =>
@@ -429,6 +431,16 @@ export function AddProviderInstanceDialog({
     );
   }
 
+  if (addingDeepSeek) {
+    return (
+      <AddDeepSeekDialog
+        environmentId={environmentId}
+        onClose={() => onOpenChange(false)}
+        onCreated={onCreated}
+      />
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <WizardPopup size="wide">
@@ -480,6 +492,18 @@ export function AddProviderInstanceDialog({
                   aria-labelledby="add-instance-driver-label"
                 />
                 <MultipleAccountsNote environmentId={environmentId} driver={driver} />
+                {isManagedDriverAllowed(managedPolicy, ProviderDriverKind.make("claudeAgent")) ? (
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!canManageProviders || isPreparingRegistryAgent}
+                      onClick={() => setAddingDeepSeek(true)}
+                    >
+                      Add DeepSeek via Claude Code
+                    </Button>
+                  </div>
+                ) : null}
               </div>
 
               {wizardStep === 0 && (moreDriverOptions.length > 0 || acpRegistryAllowed) ? (

@@ -667,6 +667,17 @@ export const CodexSettings = makeProviderSettingsSchema(
         },
       }),
     ),
+    authSourceHome: Schema.optionalKey(TrimmedString).pipe(
+      Schema.annotateKey({
+        title: "Local account credentials directory",
+        description:
+          "Read this account's existing Codex login while sharing sessions from CODEX_HOME.",
+        providerSettingsForm: { placeholder: "Account's Codex home", clearWhenEmpty: "omit" },
+      }),
+    ),
+    authSourceAccountId: Schema.optionalKey(TrimmedNonEmptyString).pipe(
+      Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
+    ),
     launchArgs: TrimmedString.pipe(
       Schema.withDecodingDefault(Effect.succeed("")),
       Schema.annotateKey({
@@ -680,7 +691,7 @@ export const CodexSettings = makeProviderSettingsSchema(
     ),
   },
   {
-    order: ["binaryPath", "homePath", "shadowHomePath", "launchArgs"],
+    order: ["binaryPath", "homePath", "shadowHomePath", "authSourceHome", "launchArgs"],
   },
 );
 export type CodexSettings = typeof CodexSettings.Type;

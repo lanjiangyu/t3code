@@ -1,0 +1,121 @@
+name: Personal Windows installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Installer version
+        type: string
+        default: 0.1.7-local.1
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_VERSION: ${{ inputs.version }}
+  T3CODE_TELEMETRY_CHANNEL: dev
+
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb
+        with:
+          node-version-file: package.json
+          cache: false
+          run-install: false
+      - name: Install dependencies
+        run: vp install --frozen-lockfile -- --registry=https://registry.npmjs.org --ignore-scripts
+      - name: Verify feature changes
+        run: vp run check:changed 337c5858c33bc7f8f6dfd391a2c279fa0f7e4d17 --concurrency 2
+      - name: Set release version
+        run: node scripts/update-release-package-versions.ts "$RELEASE_VERSION"
+      - name: Build desktop bundles and Linux CLI
+        run: |
+          vp run build:desktop
+          node apps/server/scripts/cli.ts build-exe --verbose
+      - name: Build Linux resource monitor
+        run: |
+          cargo build --locked --release --manifest-path native/resource-monitor/Cargo.toml --target x86_64-unknown-linux-gnu
+          mkdir -p "$RUNNER_TEMP/monitor/linux-x64"
+          cp native/resource-monitor/target/x86_64-unknown-linux-gnu/release/t3-resource-monitor "$RUNNER_TEMP/monitor/linux-x64/"
+          sudo apt-get update
+          sudo apt-get install -y patchelf
+      - name: Package WSL runtime
+        run: node scripts/build-cli-archive.ts --platform linux --arch x64 --version "$RELEASE_VERSION" --resource-monitor-dir "$RUNNER_TEMP/monitor" --output-dir release-cli
+      - name: Verify WSL runtime
+        run: node scripts/smoke-cli-archive.ts --archive release-cli/*.tar.gz --expect-version "$RELEASE_VERSION"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-bundles
+          path: |
+            apps/server/dist
+            apps/desktop/dist-electron
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wsl-runtime
+          path: release-cli/*.tar.gz
+          if-no-files-found: error
+
+  windows:
+    needs: bundle
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb
+        with:
+          node-version-file: package.json
+          cache: false
+          run-install: false
+      - name: Install dependencies
+        run: vp install --frozen-lockfile -- --registry=https://registry.npmjs.org --ignore-scripts
+      - name: Set release version
+        run: node scripts/update-release-package-versions.ts "$env:RELEASE_VERSION"
+      - uses: actions/download-artifact@v8
+        with:
+          name: desktop-bundles
+          path: apps
+      - uses: actions/download-artifact@v8
+        with:
+          name: wsl-runtime
+          path: wsl-runtime
+      - name: Build Windows resource monitor
+        run: cargo build --locked --release --manifest-path native/resource-monitor/Cargo.toml --target x86_64-pc-windows-msvc
+      - name: Build installer
+        env:
+          T3CODE_DESKTOP_REUSE_RESOURCE_MONITOR: true
+          T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
+        run: |
+          $archive = (Get-ChildItem wsl-runtime/*.tar.gz | Select-Object -First 1).FullName
+          node scripts/build-desktop-artifact.ts --platform win --target nsis --arch x64 --build-version "$env:RELEASE_VERSION" --skip-build --wsl-runtime "$archive" --verbose
+      - name: Record SHA256
+        run: |
+          Get-ChildItem release/*.exe | ForEach-Object { '{0}  {1}' -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name } | Set-Content release/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-installer
+          path: release/*
+          if-no-files-found: error
+
+  release:
+    needs: windows
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-installer
+          path: release
+      - name: Publish fork release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          gh release create "v$RELEASE_VERSION" release/* --target "$COMMIT" --title "T3 Code $RELEASE_VERSION" --prerelease --notes 'Windows x64 personal build: import local Codex Quota Monitor accounts, switch accounts with shared conversations, view individual usage, and add an isolated DeepSeek API provider. Sign in separately on each computer. No personal credentials are bundled. This build is unsigned.'

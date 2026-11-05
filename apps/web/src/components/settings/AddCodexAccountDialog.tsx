@@ -20,6 +20,7 @@ import { Input } from "../ui/input";
 import { WizardFooter, WizardHeader, WizardPanel, WizardPopup } from "../ui/wizard";
 import { MultipleAccountsNote } from "./MultipleAccountsNote";
 import { SettingsRow } from "./settingsLayout";
+import { ImportLocalCodexAccounts } from "./ImportLocalCodexAccounts";
 
 const CODEX_DRIVER_KIND = ProviderDriverKind.make("codex");
 
@@ -44,6 +45,7 @@ export function AddCodexAccountDialog({
   const displayName = `ChatGPT - ${name.trim()}`;
   const [instanceId, setInstanceId] = useState<ProviderInstanceId | null>(null);
   const [pending, setPending] = useState(false);
+  const [importLocal, setImportLocal] = useState(false);
   const provider = providers?.find((candidate) => candidate.instanceId === instanceId);
   // Closes itself once the new account connects; the owner unmounts it after
   // the close animation.
@@ -93,11 +95,19 @@ export function AddCodexAccountDialog({
     >
       <WizardPopup size="wide">
         <WizardHeader
-          title={instanceId ? displayName : "Add ChatGPT account"}
+          title={
+            importLocal
+              ? "Import local Codex accounts"
+              : instanceId
+                ? displayName
+                : "Add ChatGPT account"
+          }
           description="Each account has its own Codex instance and sign-in. Choose the other account on the sign-in page."
         />
         <WizardPanel>
-          {instanceId ? (
+          {importLocal ? (
+            <ImportLocalCodexAccounts environmentId={environmentId} onImported={onClose} />
+          ) : instanceId ? (
             provider?.setup ? (
               renderSetup(instanceId, provider)
             ) : (
@@ -126,11 +136,23 @@ export function AddCodexAccountDialog({
                 }
               />
               <MultipleAccountsNote environmentId={environmentId} driver={CODEX_DRIVER_KIND} />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!canManageProviders || pending}
+                onClick={() => setImportLocal(true)}
+              >
+                Import local Codex accounts
+              </Button>
             </form>
           )}
         </WizardPanel>
         <WizardFooter>
-          {instanceId ? (
+          {importLocal ? (
+            <Button variant="outline" onClick={() => setImportLocal(false)}>
+              Back to sign-in
+            </Button>
+          ) : instanceId ? (
             <Button variant="outline" onClick={onClose}>
               Finish later
             </Button>

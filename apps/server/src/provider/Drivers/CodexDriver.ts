@@ -279,7 +279,9 @@ export const CodexDriver: ProviderDriver<
       ),
     );
     const textGeneration = yield* makeCodexTextGeneration(
-      effectiveConfig,
+      effectiveConfig.authSourceHome?.trim()
+        ? { ...effectiveConfig, homePath: effectiveConfig.authSourceHome }
+        : effectiveConfig,
       processEnv,
       snapshot.getSnapshot.pipe(Effect.map((value) => value.models)),
     );
@@ -290,6 +292,8 @@ export const CodexDriver: ProviderDriver<
             snapshot.getSnapshot,
             probeCodexSkillsForCwd({
               binaryPath: effectiveConfig.binaryPath,
+              authSourceHome: effectiveConfig.authSourceHome,
+              authSourceAccountId: effectiveConfig.authSourceAccountId,
               homePath: effectiveConfig.homePath,
               launchArgs: resolveCodexLaunchArgs(effectiveConfig.launchArgs, processEnv),
               cwd,
@@ -298,6 +302,8 @@ export const CodexDriver: ProviderDriver<
               Effect.scoped,
               Effect.timeout("20 seconds"),
               Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+              Effect.provideService(FileSystem.FileSystem, fileSystem),
+              Effect.provideService(Path.Path, pathService),
             ),
           ]).pipe(
             Effect.map(([machineSnapshot, skills]) => ({ ...machineSnapshot, skills })),
@@ -315,13 +321,19 @@ export const CodexDriver: ProviderDriver<
     // Redemption spends account credit; serialize by the auth.json directory, keep one idempotency key
     // until the outcome, and bound the wait so a hung app-server cannot hold the account lock.
     // Auth overlays use effectiveHomePath; the continuation key would conflate them with shared homes.
-    const accountKey = homeLayout.effectiveHomePath ?? homeLayout.sharedHomePath;
+    const accountKey =
+      effectiveConfig.authSourceAccountId ??
+      effectiveConfig.authSourceHome ??
+      homeLayout.effectiveHomePath ??
+      homeLayout.sharedHomePath;
     const consumeResetCredit: NonNullable<ProviderInstance["consumeResetCredit"]> = () =>
       resetCreditCoordinator
         .redeem(accountKey, (idempotencyKey) =>
           Effect.gen(function* () {
             const { client } = yield* withCodexAppServerClient({
               binaryPath: effectiveConfig.binaryPath,
+              authSourceHome: effectiveConfig.authSourceHome,
+              authSourceAccountId: effectiveConfig.authSourceAccountId,
               homePath: effectiveConfig.homePath,
               launchArgs: resolveCodexLaunchArgs(effectiveConfig.launchArgs, processEnv),
               cwd: process.cwd(),
@@ -335,6 +347,8 @@ export const CodexDriver: ProviderDriver<
         )
         .pipe(
           Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+          Effect.provideService(FileSystem.FileSystem, fileSystem),
+          Effect.provideService(Path.Path, pathService),
           Effect.mapError(
             (cause) =>
               new ProviderDriverError({

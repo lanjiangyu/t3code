@@ -33,6 +33,17 @@ Connecting accounts through T3 Code leaves your CLI login unchanged.
 
 ### Multiple CLI logins
 
+On web and desktop, choose **Add ChatGPT account → Import local Codex accounts**
+in **Settings → Providers**. Scan and select saved Codex CLI or Codex Quota Monitor
+accounts on the connected environment. Importing does not copy logins between
+machines: sign in locally on each computer before importing there.
+
+Imported accounts share a Codex home for conversations, while their **Local account
+credentials directory** points to each saved login. Select another imported account
+in the thread's model picker to continue, and check its usage in provider settings.
+Expired logins need signing in again in the original CLI or quota monitor. Removing
+a provider from T3 Code keeps the original login in that tool.
+
 A shared Codex home with a shadow home lets work and personal accounts continue
 the same threads. The accounts share Codex sessions and configuration while keeping
 their own login and available models.

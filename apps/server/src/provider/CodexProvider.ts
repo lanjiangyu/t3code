@@ -36,6 +36,7 @@ import {
 } from "@t3tools/shared/model";
 import { resolveSpawnCommand } from "@t3tools/shared/shell";
 import { codexAppServerArgs, resolveCodexLaunchArgs } from "./codexLaunchArgs.ts";
+import { makeLocalCodexAuthenticator } from "./LocalCodexAuth.ts";
 import {
   buildServerProvider,
   COMPACT_SLASH_COMMAND,
@@ -485,6 +486,8 @@ const codexProcessEnvironment = Effect.fn("codexProcessEnvironment")(function* (
 
 export const withCodexAppServerClient = Effect.fn("withCodexAppServerClient")(function* (input: {
   readonly binaryPath: string;
+  readonly authSourceHome?: string | undefined;
+  readonly authSourceAccountId?: string | undefined;
   readonly homePath?: string | undefined;
   readonly launchArgs?: string | undefined;
   readonly cwd: string;
@@ -522,11 +525,17 @@ export const withCodexAppServerClient = Effect.fn("withCodexAppServerClient")(fu
   );
   const initialize = yield* client.request("initialize", buildCodexInitializeParams());
   yield* client.notify("initialized", undefined);
+  if (input.authSourceHome?.trim()) {
+    const authenticate = yield* makeLocalCodexAuthenticator(input, environment);
+    yield* authenticate(client);
+  }
   return { client, initialize };
 });
 
 const probeCodexAppServerProvider = Effect.fn("probeCodexAppServerProvider")(function* (input: {
   readonly binaryPath: string;
+  readonly authSourceHome?: string | undefined;
+  readonly authSourceAccountId?: string | undefined;
   readonly homePath?: string;
   readonly launchArgs?: string;
   readonly cwd: string;
@@ -645,6 +654,8 @@ const probeCodexCliVersion = Effect.fn("probeCodexCliVersion")(
 
 export const probeCodexSkillsForCwd = Effect.fn("probeCodexSkillsForCwd")(function* (input: {
   readonly binaryPath: string;
+  readonly authSourceHome?: string | undefined;
+  readonly authSourceAccountId?: string | undefined;
   readonly homePath?: string;
   readonly launchArgs?: string;
   readonly cwd: string;
@@ -736,6 +747,8 @@ export const checkCodexProviderStatus = Effect.fn("checkCodexProviderStatus")(fu
   codexSettings: CodexSettings,
   probe: (input: {
     readonly binaryPath: string;
+    readonly authSourceHome?: string | undefined;
+    readonly authSourceAccountId?: string | undefined;
     readonly homePath?: string;
     readonly launchArgs?: string;
     readonly cwd: string;
@@ -776,6 +789,8 @@ export const checkCodexProviderStatus = Effect.fn("checkCodexProviderStatus")(fu
 
   const probeResult = yield* probe({
     binaryPath: codexSettings.binaryPath,
+    authSourceHome: codexSettings.authSourceHome,
+    authSourceAccountId: codexSettings.authSourceAccountId,
     homePath: codexSettings.homePath,
     launchArgs: resolveCodexLaunchArgs(codexSettings.launchArgs, resolvedEnvironment),
     cwd: process.cwd(),
