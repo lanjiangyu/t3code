@@ -605,7 +605,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Provider update checks",
     to: "/settings/maintenance",
     searchTerms: [
-      "installed cli versions newer available codex claude cursor grok fx kiro opencode",
+      "installed cli versions newer available codex claude cursor grok fx kiro opencode deepseek dsh",
     ],
     scope: "environment-defaults",
   },

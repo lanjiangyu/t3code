@@ -41,33 +41,18 @@ export function AddDeepSeekDialog({
       return;
     setPending(true);
     setError(false);
-    const id = ProviderInstanceId.make(`claude_deepseek_${randomUUID()}`);
-    const environment = [
-      ["ANTHROPIC_BASE_URL", "https://api.deepseek.com/anthropic"],
-      ["ANTHROPIC_AUTH_TOKEN", key.trim()],
-      ["ANTHROPIC_API_KEY", ""],
-      ["CLAUDE_CODE_OAUTH_TOKEN", ""],
-      ["ANTHROPIC_MODEL", model],
-      ["ANTHROPIC_DEFAULT_OPUS_MODEL", "deepseek-v4-pro"],
-      ["ANTHROPIC_DEFAULT_SONNET_MODEL", "deepseek-flash"],
-      ["ANTHROPIC_DEFAULT_HAIKU_MODEL", "deepseek-flash"],
-      ["CLAUDE_CODE_SUBAGENT_MODEL", "deepseek-flash"],
-    ].map(([name, value]) => ({
-      name: name!,
-      value: value!,
-      sensitive: name === "ANTHROPIC_AUTH_TOKEN",
-    }));
+    const id = ProviderInstanceId.make(`deepseek_${randomUUID()}`);
+    const environment = [{ name: "DEEPSEEK_API_KEY", value: key.trim(), sensitive: true }];
     const result = await persist({
       operation: "create",
       instanceId: id,
       instance: {
-        driver: ProviderDriverKind.make("claudeAgent"),
+        driver: ProviderDriverKind.make("deepseek"),
         displayName: name.trim(),
         enabled: true,
         environment,
         config: {
-          homePath: `~/.t3-deepseek/${id}`,
-          customModels: ["deepseek-flash", "deepseek-v4-pro"],
+          defaultModel: model,
         },
       },
     });
@@ -91,7 +76,7 @@ export function AddDeepSeekDialog({
       <WizardPopup>
         <WizardHeader
           title="Add DeepSeek"
-          description="Use DeepSeek through your installed Claude Code runtime with a separate configuration."
+          description="Use the official DeepSeek Harness with its own account and conversations."
         />
         <WizardPanel>
           <form
@@ -154,8 +139,7 @@ export function AddDeepSeekDialog({
               }
             />
             <p className="text-xs text-muted-foreground">
-              Requires Claude Code on this machine. DeepSeek bills your API account; Claude Pro
-              usage is separate. Your existing Claude subscription configuration stays unchanged.
+              Requires DeepSeek Harness (dsh) on this machine. DeepSeek bills your API account.
             </p>
             {error ? (
               <p role="alert" className="text-sm text-destructive">

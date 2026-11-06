@@ -26,6 +26,10 @@ the parent conversation with the subagent's name, so you can respond without swi
 
 ## Provider differences
 
+DeepSeek Harness currently offers only **Supervised** mode through T3 Code. Other stored modes
+fall back to Supervised. Native sandboxing uses its workspace-write policy and approvals reach
+the conversation through ACP.
+
 Providers enforce permissions differently. Some read-only actions can proceed in **Supervised**.
 **Auto** uses automatic review on Codex, Claude, Cursor, Grok, and fx; providers without an equivalent,
 including OpenCode and Antigravity, fall back to asking. On Grok, commands its review blocks come

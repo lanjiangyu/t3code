@@ -19,7 +19,7 @@ vi.mock(import("../../state/session"), async (original) => ({
 
 import { AddDeepSeekDialog } from "./AddDeepSeekDialog";
 
-it("creates a separate Claude runtime with a sensitive DeepSeek key and no subscription token", async () => {
+it("creates a native DeepSeek provider with a sensitive key and its selected default model", async () => {
   setup.persist.mockClear();
   const onClose = vi.fn();
   await using screen = await render(
@@ -31,25 +31,15 @@ it("creates a separate Claude runtime with a sensitive DeepSeek key and no subsc
   await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   expect(setup.persist).toHaveBeenCalledExactlyOnceWith({
     operation: "create",
-    instanceId: expect.stringMatching(/^claude_deepseek_/),
+    instanceId: expect.stringMatching(/^deepseek_/),
     instance: {
-      driver: "claudeAgent",
+      driver: "deepseek",
       displayName: "DeepSeek",
       enabled: true,
       config: {
-        homePath: expect.stringMatching(/^~\/.t3-deepseek\/claude_deepseek_/),
-        customModels: ["deepseek-flash", "deepseek-v4-pro"],
+        defaultModel: "deepseek-v4-pro",
       },
-      environment: expect.arrayContaining([
-        {
-          name: "ANTHROPIC_BASE_URL",
-          value: "https://api.deepseek.com/anthropic",
-          sensitive: false,
-        },
-        { name: "ANTHROPIC_AUTH_TOKEN", value: "sk-test-deepseek", sensitive: true },
-        { name: "CLAUDE_CODE_OAUTH_TOKEN", value: "", sensitive: false },
-        { name: "ANTHROPIC_MODEL", value: "deepseek-v4-pro", sensitive: false },
-      ]),
+      environment: [{ name: "DEEPSEEK_API_KEY", value: "sk-test-deepseek", sensitive: true }],
     },
   });
 });

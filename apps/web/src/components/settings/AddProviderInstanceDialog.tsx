@@ -492,7 +492,7 @@ export function AddProviderInstanceDialog({
                   aria-labelledby="add-instance-driver-label"
                 />
                 <MultipleAccountsNote environmentId={environmentId} driver={driver} />
-                {isManagedDriverAllowed(managedPolicy, ProviderDriverKind.make("claudeAgent")) ? (
+                {isManagedDriverAllowed(managedPolicy, ProviderDriverKind.make("deepseek")) ? (
                   <div>
                     <Button
                       type="button"
@@ -500,7 +500,7 @@ export function AddProviderInstanceDialog({
                       disabled={!canManageProviders || isPreparingRegistryAgent}
                       onClick={() => setAddingDeepSeek(true)}
                     >
-                      Add DeepSeek via Claude Code
+                      Add DeepSeek
                     </Button>
                   </div>
                 ) : null}

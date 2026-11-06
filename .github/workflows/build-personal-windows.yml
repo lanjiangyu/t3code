@@ -6,7 +6,7 @@ on:
       version:
         description: Installer version
         type: string
-        default: 0.1.7-local.1
+        default: 0.1.7-local.2
         required: true
 
 permissions:
@@ -126,4 +126,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           COMMIT: ${{ github.sha }}
         run: |
-          gh release create "v$RELEASE_VERSION" release/* --target "$COMMIT" --title "T3 Code $RELEASE_VERSION" --prerelease --notes 'Windows x64 personal build: import local Codex Quota Monitor accounts, switch accounts with shared conversations, view individual usage, and add an isolated DeepSeek API provider. Sign in separately on each computer. No personal credentials are bundled. This build is unsigned.'
+          if ! gh release view "v$RELEASE_VERSION" >/dev/null 2>&1; then
+            gh release create "v$RELEASE_VERSION" --target "$COMMIT" --title "T3 Code $RELEASE_VERSION" --prerelease --notes 'Windows x64 personal build with local Codex accounts and an independent DeepSeek Harness provider. Install @deepseek-ai/dsh and configure your API key in provider settings. No personal credentials are bundled. Unsigned build.'
+          fi
+          gh release upload "v$RELEASE_VERSION" release/* --clobber
