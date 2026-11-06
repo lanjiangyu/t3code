@@ -1,16 +1,7 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-07T00:00:00Z",
+  "updatedAt": "2026-11-02T23:47:11Z",
   "compatibility": [
-    {
-      "driver": "deepseek",
-      "t3CodeRange": ">=0.1.7",
-      "recommendedRange": ">=0.2.2-rc.1",
-      "ranges": [
-        { "range": ">=0.2.2-rc.1", "status": "supported" },
-        { "range": "<0.2.2-rc.1", "status": "unknown" }
-      ]
-    },
     {
       "driver": "codex",
       "t3CodeRange": ">=0.0.44",
